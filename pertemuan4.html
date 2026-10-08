@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transformasi Fourier Citra</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #eef2ff, #f8fafc);
+            color: #1e293b;
+        }
+
+        header {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            text-align: center;
+            padding: 25px;
+        }
+
+        header h1 {
+            margin: 0 0 8px;
+            font-size: 28px;
+        }
+
+        header p {
+            margin: 0;
+            font-size: 15px;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1100px;
+            margin: 25px auto;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            color: #4f46e5;
+        }
+
+        .upload-box {
+            text-align: center;
+            border: 2px dashed #818cf8;
+            padding: 25px;
+            border-radius: 12px;
+            background: #f8faff;
+        }
+
+        input[type="file"] {
+            margin-top: 15px;
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+        button {
+            border: none;
+            padding: 11px 18px;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
+
+        .btn-gray {
+            background: #64748b;
+        }
+
+        .btn-binary {
+            background: #111827;
+        }
+
+        .btn-zigzag {
+            background: #0891b2;
+        }
+
+        .btn-fourier {
+            background: #4f46e5;
+        }
+
+        .btn-inverse {
+            background: #7c3aed;
+        }
+
+        .btn-clear {
+            background: #dc2626;
+        }
+
+        .canvas-area {
+            text-align: center;
+        }
+
+        canvas {
+            max-width: 100%;
+            border: 1px solid #cbd5e1;
+            margin: 10px;
+            background: white;
+        }
+
+        .result-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .result-card {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .result-card h3 {
+            color: #4f46e5;
+            margin-top: 0;
+        }
+
+        #info {
+            padding: 12px;
+            background: #eef2ff;
+            border-radius: 8px;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .note {
+            background: #fff7ed;
+            border-left: 5px solid #f97316;
+            padding: 15px;
+            margin-top: 20px;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 600px) {
+            header h1 {
+                font-size: 22px;
+            }
+
+            .container {
+                width: 95%;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Transformasi Fourier Citra</h1>
+    <p>Analisis Citra pada Domain Spasial dan Domain Frekuensi</p>
+</header>
+
+<div class="container">
+
+    <!-- INPUT -->
+    <div class="card">
+        <h2>1. Input Citra</h2>
+
+        <div class="upload-box">
+            <p>Pilih citra JPG, JPEG, PNG atau BMP</p>
+
+            <input
+                type="file"
+                id="file1"
+                accept=".jpg,.jpeg,.png,.bmp"
+            >
+        </div>
+
+        <div class="button-group">
+            <button class="btn-gray" onclick="generateGrayscale()">
+                Citra Grayscale
+            </button>
+
+            <button class="btn-binary" onclick="generateBinary()">
+                Citra Biner
+            </button>
+
+            <button class="btn-zigzag" onclick="generateZigzag()">
+                Pola Crossing/Zigzag
+            </button>
+        </div>
+    </div>
+
+    <!-- GAMBAR INPUT -->
+    <div class="card canvas-area">
+        <h2>Citra Input</h2>
+
+        <canvas id="gambar" width="256" height="256"></canvas>
+
+        <div id="resolution">
+            Resolusi: -
+        </div>
+    </div>
+
+    <!-- PROSES -->
+    <div class="card">
+        <h2>2. Proses Transformasi Fourier</h2>
+
+        <div class="button-group">
+            <button class="btn-fourier" onclick="transformFourier('gambar')">
+                Fourier Transform
+            </button>
+
+            <button
+                class="btn-inverse"
+                id="inverseButton"
+                onclick="inverseFourier()"
+                disabled
+            >
+                Inverse Fourier Transform
+            </button>
+
+            <button class="btn-clear" onclick="clearChannels()">
+                Hapus Hasil
+            </button>
+        </div>
+
+        <div id="info">
+            Silakan pilih atau buat citra terlebih dahulu.
+        </div>
+    </div>
+
+    <!-- HASIL -->
+    <div class="card">
+        <h2>3. Hasil Transformasi</h2>
+
+        <div id="channels" class="result-container"></div>
+
+        <div class="note">
+            <strong>Keterangan:</strong><br>
+            Domain frekuensi menunjukkan komponen frekuensi yang terdapat
+            pada citra. Bagian yang lebih terang menunjukkan nilai frekuensi
+            yang lebih kuat.
+        </div>
+    </div>
+
+</div>
+
+
+<script>
+
+    let originalImage = null;
+
+    let dft2DReal = null;
+    let dft2DImag = null;
+
+    let width = 0;
+    let height = 0;
+
+    let inverseClicked = false;
+
+
+    // =========================================================
+    // LOAD IMAGE
+    // =========================================================
+
+    function loadImage(fileInput, canvasId) {
+
+        const file = fileInput.files[0];
+
+        if (!file) {
+            return;
+        }
+
+        const img = new Image();
+
+        img.onload = function () {
+
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext("2d");
+
+            width = img.width;
+            height = img.height;
+
+            canvas.width = width;
+            canvas.height = height;
+
+            ctx.drawImage(img, 0, 0);
+
+            originalImage = ctx.getImageData(
+                0,
+                0,
+                width,
+                height
+            );
+
+            dft2DReal = null;
+            dft2DImag = null;
+
+            inverseClicked = false;
+
+            document.getElementById("inverseButton").disabled = true;
+
+            document.getElementById("resolution").innerHTML =
+                "Resolusi: " + width + " × " + height + " pixel";
+
+            document.getElementById("info").innerHTML =
+                "Citra berhasil dimuat. Silakan lakukan Fourier Transform.";
+
+            clearChannels();
+        };
+
+        img.src = URL.createObjectURL(file);
+    }
+
+
+    // =========================================================
+    // FILE INPUT
+    // =========================================================
+
+    document.getElementById("file1").addEventListener(
+        "change",
+        function () {
+
+            loadImage(this, "gambar");
+
+        }
+    );
+
+
+    // =========================================================
+    // CLEAR HASIL
+    // =========================================================
+
+    function clearChannels() {
+
+        document.getElementById("channels").innerHTML = "";
+
+    }
+
+
+    // =========================================================
+    // MEMBUAT CANVAS HASIL
+    // =========================================================
+
+    function createChannelCanvas(title, width, height, imageData) {
+
+        const container = document.getElementById("channels");
+
+        const card = document.createElement("div");
+
+        card.className = "result-card";
+
+        const heading = document.createElement("h3");
+
+        heading.textContent = title;
+
+        const canvas = document.createElement("canvas");
+
+        canvas.width = width;
+        canvas.height = height;
+
+        canvas.style.maxWidth = "400px";
+
+        const ctx = canvas.getContext("2d");
+
+        ctx.putImageData(imageData, 0, 0);
+
+        card.appendChild(heading);
+
+        card.appendChild(canvas);
+
+        container.appendChild(card);
+    }
+
+
+    // =========================================================
+    // DFT 1 DIMENSI
+    // =========================================================
+
+    function DFT1D(inputReal, inputImag) {
+
+        const N = inputReal.length;
+
+        const outputReal = new Array(N).fill(0);
+
+        const outputImag = new Array(N).fill(0);
+
+        for (let k = 0; k < N; k++) {
+
+            let real = 0;
+
+            let imag = 0;
+
+            for (let n = 0; n < N; n++) {
+
+                const angle =
+                    (2 * Math.PI * k * n) / N;
+
+                const valR = inputReal[n];
+
+                const valI = inputImag[n];
+
+                real +=
+                    valR * Math.cos(angle) +
+                    valI * Math.sin(angle);
+
+                imag +=
+                    -valR * Math.sin(angle) +
+                    valI * Math.cos(angle);
+            }
+
+            outputReal[k] = real;
+
+            outputImag[k] = imag;
+        }
+
+        return {
+            real: outputReal,
+            imag: outputImag
+        };
+    }
+
+
+    // =========================================================
+    // IDFT 1 DIMENSI
+    // =========================================================
+
+    function IDFT1D(inputReal, inputImag) {
+
+        const N = inputReal.length;
+
+        const outputReal = new Array(N).fill(0);
+
+        const outputImag = new Array(N).fill(0);
+
+        for (let n = 0; n < N; n++) {
+
+            let real = 0;
+
+            let imag = 0;
+
+            for (let k = 0; k < N; k++) {
+
+                const angle =
+                    (2 * Math.PI * k * n) / N;
+
+                real +=
+                    inputReal[k] * Math.cos(angle) -
+                    inputImag[k] * Math.sin(angle);
+
+                imag +=
+                    inputReal[k] * Math.sin(angle) +
+                    inputImag[k] * Math.cos(angle);
+            }
+
+            outputReal[n] = real / N;
+
+            outputImag[n] = imag / N;
+        }
+
+        return {
+            real: outputReal,
+            imag: outputImag
+        };
+    }
+
+
+    // =========================================================
+    // FOURIER TRANSFORM 2D
+    // =========================================================
+
+    function transformFourier(canvasId) {
+
+        const canvas = document.getElementById(canvasId);
+
+        const ctx = canvas.getContext("2d");
+
+        width = canvas.width;
+
+        height = canvas.height;
+
+        const imgData = ctx.getImageData(
+            0,
+            0,
+            width,
+            height
+        );
+
+
+        // -----------------------------------------------------
+        // Membuat array grayscale
+        // -----------------------------------------------------
+
+        let data = new Array(height);
+
+        for (let y = 0; y < height; y++) {
+
+            data[y] = new Array(width);
+
+            for (let x = 0; x < width; x++) {
+
+                const index =
+                    (y * width + x) * 4;
+
+                const R = imgData.data[index];
+
+                const G = imgData.data[index + 1];
+
+                const B = imgData.data[index + 2];
+
+                // RGB ke grayscale
+                let gray =
+                    0.299 * R +
+                    0.587 * G +
+                    0.114 * B;
+
+                // Centering frequency
+                if ((x + y) % 2 !== 0) {
+                    gray = -gray;
+                }
+
+                data[y][x] = gray;
+            }
+        }
+
+
+        // -----------------------------------------------------
+        // DFT pada baris
+        // -----------------------------------------------------
+
+        let rowReal = new Array(height);
+
+        let rowImag = new Array(height);
+
+        for (let y = 0; y < height; y++) {
+
+            const inputReal = data[y];
+
+            const inputImag =
+                new Array(width).fill(0);
+
+            const result =
+                DFT1D(inputReal, inputImag);
+
+            rowReal[y] = result.real;
+
+            rowImag[y] = result.imag;
+        }
+
+
+        // -----------------------------------------------------
+        // DFT pada kolom
+        // -----------------------------------------------------
+
+        dft2DReal = new Array(height);
+
+        dft2DImag = new Array(height);
+
+        for (let y = 0; y < height; y++) {
+
+            dft2DReal[y] =
+                new Array(width).fill(0);
+
+            dft2DImag[y] =
+                new Array(width).fill(0);
+        }
+
+
+        for (let x = 0; x < width; x++) {
+
+            const inputReal = [];
+
+            const inputImag = [];
+
+            for (let y = 0; y < height; y++) {
+
+                inputReal.push(rowReal[y][x]);
+
+                inputImag.push(rowImag[y][x]);
+            }
+
+            const result =
+                DFT1D(inputReal, inputImag);
+
+            for (let y = 0; y < height; y++) {
+
+                dft2DReal[y][x] =
+                    result.real[y];
+
+                dft2DImag[y][x] =
+                    result.imag[y];
+            }
+        }
+
+
+        // -----------------------------------------------------
+        // Magnitude Fourier
+        // -----------------------------------------------------
+
+        let magnitude =
+            new Array(height);
+
+        let maxMagnitude = 0;
+
+        let minMagnitude = Infinity;
+
+
+        for (let y = 0; y < height; y++) {
+
+            magnitude[y] =
+                new Array(width);
+
+            for (let x = 0; x < width; x++) {
+
+                const mag =
+                    Math.sqrt(
+                        dft2DReal[y][x] *
+                        dft2DReal[y][x] +
+
+                        dft2DImag[y][x] *
+                        dft2DImag[y][x]
+                    );
+
+                // Log scaling
+                const value =
+                    Math.log(1 + mag);
+
+                magnitude[y][x] = value;
+
+                if (value > maxMagnitude) {
+                    maxMagnitude = value;
+                }
+
+                if (value < minMagnitude) {
+                    minMagnitude = value;
+                }
+            }
+        }
+
+
+        // -----------------------------------------------------
+        // Membuat citra domain frekuensi
+        // -----------------------------------------------------
+
+        const resultData =
+            new ImageData(width, height);
+
+
+        for (let y = 0; y < height; y++) {
+
+            for (let x = 0; x < width; x++) {
+
+                let value =
+                    magnitude[y][x];
+
+                value =
+                    (value - minMagnitude) /
+                    (maxMagnitude - minMagnitude);
+
+                value *= 255;
+
+                value =
+                    Math.max(
+                        0,
+                        Math.min(255, value)
+                    );
+
+                const index =
+                    (y * width + x) * 4;
+
+                resultData.data[index] =
+                    value;
+
+                resultData.data[index + 1] =
+                    value;
+
+                resultData.data[index + 2] =
+                    value;
+
+                resultData.data[index + 3] =
+                    255;
+            }
+        }
+
+
+        clearChannels();
+
+        createChannelCanvas(
+            "Fourier Transform (Magnitude Centered)",
+            width,
+            height,
+            resultData
+        );
+
+
+        document.getElementById("info").innerHTML =
+            "Transformasi Fourier berhasil. Domain frekuensi telah ditampilkan.";
+
+        document.getElementById("inverseButton").disabled =
+            false;
+
+        inverseClicked = false;
+    }
+
+
+    // =========================================================
+    // INVERSE FOURIER TRANSFORM
+    // =========================================================
+
+    function inverseFourier() {
+
+        if (!dft2DReal || !dft2DImag) {
+
+            alert(
+                "Lakukan Fourier Transform terlebih dahulu."
+            );
+
+            return;
+        }
+
+
+        // -----------------------------------------------------
+        // IDFT kolom
+        // -----------------------------------------------------
+
+        let columnReal =
+            new Array(height);
+
+        let columnImag =
+            new Array(height);
+
+
+        for (let y = 0; y < height; y++) {
+
+            columnReal[y] =
+                new Array(width);
+
+            columnImag[y] =
+                new Array(width);
+        }
+
+
+        for (let x = 0; x < width; x++) {
+
+            const inputReal = [];
+
+            const inputImag = [];
+
+            for (let y = 0; y < height; y++) {
+
+                inputReal.push(
+                    dft2DReal[y][x]
+                );
+
+                inputImag.push(
+                    dft2DImag[y][x]
+                );
+            }
+
+            const result =
+                IDFT1D(inputReal, inputImag);
+
+            for (let y = 0; y < height; y++) {
+
+                columnReal[y][x] =
+                    result.real[y];
+
+                columnImag[y][x] =
+                    result.imag[y];
+            }
+        }
+
+
+        // -----------------------------------------------------
+        // IDFT baris
+        // -----------------------------------------------------
+
+        const outputData =
+            new ImageData(width, height);
+
+
+        for (let y = 0; y < height; y++) {
+
+            const result =
+                IDFT1D(
+                    columnReal[y],
+                    columnImag[y]
+                );
+
+            for (let x = 0; x < width; x++) {
+
+                let value =
+                    result.real[x];
+
+                // Mengembalikan centering
+                if ((x + y) % 2 !== 0) {
+                    value = -value;
+                }
+
+                value =
+                    Math.max(
+                        0,
+                        Math.min(255, value)
+                    );
+
+                const index =
+                    (y * width + x) * 4;
+
+                outputData.data[index] =
+                    value;
+
+                outputData.data[index + 1] =
+                    value;
+
+                outputData.data[index + 2] =
+                    value;
+
+                outputData.data[index + 3] =
+                    255;
+            }
+        }
+
+
+        createChannelCanvas(
+            "Inverse Fourier Transform",
+            width,
+            height,
+            outputData
+        );
+
+
+        document.getElementById("info").innerHTML =
+            "Inverse Fourier Transform berhasil dilakukan.";
+
+        inverseClicked = true;
+
+        document.getElementById("inverseButton").disabled =
+            true;
+    }
+
+
+    // =========================================================
+    // MEMBUAT CITRA GRAYSCALE
+    // =========================================================
+
+    function generateGrayscale() {
+
+        width = 256;
+
+        height = 256;
+
+        const canvas =
+            document.getElementById("gambar");
+
+        const ctx =
+            canvas.getContext("2d");
+
+        canvas.width = width;
+
+        canvas.height = height;
+
+
+        const imageData =
+            ctx.createImageData(
+                width,
+                height
+            );
+
+
+        for (let y = 0; y < height; y++) {
+
+            for (let x = 0; x < width; x++) {
+
+                // Gradien grayscale
+                const value =
+                    Math.floor(
+                        (x / width) * 255
+                    );
+
+                const index =
+                    (y * width + x) * 4;
+
+                imageData.data[index] =
+                    value;
+
+                imageData.data[index + 1] =
+                    value;
+
+                imageData.data[index + 2] =
+                    value;
+
+                imageData.data[index + 3] =
+                    255;
+            }
+        }
+
+
+        ctx.putImageData(
+            imageData,
+            0,
+            0
+        );
+
+
+        originalImage = imageData;
+
+        resetFourier();
+
+        document.getElementById("info").innerHTML =
+            "Citra Grayscale berhasil dibuat.";
+
+        document.getElementById("resolution").innerHTML =
+            "Resolusi: 256 × 256 pixel";
+    }
+
+
+    // =========================================================
+    // MEMBUAT CITRA BINER
+    // =========================================================
+
+    function generateBinary() {
+
+        width = 256;
+
+        height = 256;
+
+        const canvas =
+            document.getElementById("gambar");
+
+        const ctx =
+            canvas.getContext("2d");
+
+        canvas.width = width;
+
+        canvas.height = height;
+
+
+        const imageData =
+            ctx.createImageData(
+                width,
+                height
+            );
+
+
+        const blockSize = 32;
+
+
+        for (let y = 0; y < height; y++) {
+
+            for (let x = 0; x < width; x++) {
+
+                const blockX =
+                    Math.floor(x / blockSize);
+
+                const blockY =
+                    Math.floor(y / blockSize);
+
+
+                const value =
+                    (blockX + blockY) % 2 === 0
+                    ? 255
+                    : 0;
+
+
+                const index =
+                    (y * width + x) * 4;
+
+                imageData.data[index] =
+                    value;
+
+                imageData.data[index + 1] =
+                    value;
+
+                imageData.data[index + 2] =
+                    value;
+
+                imageData.data[index + 3] =
+                    255;
+            }
+        }
+
+
+        ctx.putImageData(
+            imageData,
+            0,
+            0
+        );
+
+
+        originalImage = imageData;
+
+        resetFourier();
+
+        document.getElementById("info").innerHTML =
+            "Citra Biner berhasil dibuat.";
+
+        document.getElementById("resolution").innerHTML =
+            "Resolusi: 256 × 256 pixel";
+    }
+
+
+    // =========================================================
+    // MEMBUAT POLA CROSSING / ZIGZAG
+    // =========================================================
+
+    function generateZigzag() {
+
+        width = 256;
+
+        height = 256;
+
+        const canvas =
+            document.getElementById("gambar");
+
+        const ctx =
+            canvas.getContext("2d");
+
+        canvas.width = width;
+
+        canvas.height = height;
+
+
+        const imageData =
+            ctx.createImageData(
+                width,
+                height
+            );
+
+
+        const stripeWidth = 10;
+
+
+        for (let y = 0; y < height; y++) {
+
+            for (let x = 0; x < width; x++) {
+
+                /*
+                    Membuat garis diagonal.
+                    Jika nilai x+y berada pada
+                    interval tertentu maka putih,
+                    selain itu hitam.
+                */
+
+                const value =
+                    Math.floor(
+                        (x + y) / stripeWidth
+                    ) % 2 === 0
+                    ? 255
+                    : 0;
+
+
+                const index =
+                    (y * width + x) * 4;
+
+                imageData.data[index] =
+                    value;
+
+                imageData.data[index + 1] =
+                    value;
+
+                imageData.data[index + 2] =
+                    value;
+
+                imageData.data[index + 3] =
+                    255;
+            }
+        }
+
+
+        ctx.putImageData(
+            imageData,
+            0,
+            0
+        );
+
+
+        originalImage = imageData;
+
+        resetFourier();
+
+        document.getElementById("info").innerHTML =
+            "Pola Crossing/Zigzag berhasil dibuat.";
+
+        document.getElementById("resolution").innerHTML =
+            "Resolusi: 256 × 256 pixel";
+    }
+
+
+    // =========================================================
+    // RESET FOURIER
+    // =========================================================
+
+    function resetFourier() {
+
+        dft2DReal = null;
+
+        dft2DImag = null;
+
+        inverseClicked = false;
+
+        document.getElementById(
+            "inverseButton"
+        ).disabled = true;
+
+        clearChannels();
+    }
+
+</script>
+
+</body>
+</html>
